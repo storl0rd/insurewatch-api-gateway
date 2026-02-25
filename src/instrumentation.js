@@ -3,7 +3,9 @@ const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
 const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-http');
+const { OTLPLogExporter } = require('@opentelemetry/exporter-logs-otlp-http');
 const { PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics');
+const { BatchLogRecordProcessor } = require('@opentelemetry/sdk-logs');
 const { Resource } = require('@opentelemetry/resources');
 const { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } = require('@opentelemetry/semantic-conventions');
 
@@ -25,6 +27,9 @@ const sdk = new NodeSDK({
     }),
     exportIntervalMillis: 10000,
   }),
+  logRecordProcessor: new BatchLogRecordProcessor(
+    new OTLPLogExporter({ url: `${otlpEndpoint}/v1/logs` })
+  ),
   instrumentations: [
     getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-http': { enabled: true },
@@ -35,7 +40,6 @@ const sdk = new NodeSDK({
 
 sdk.start();
 console.log('OpenTelemetry SDK started for api-gateway');
-
 process.on('SIGTERM', () => {
   sdk.shutdown().then(() => process.exit(0));
 });
